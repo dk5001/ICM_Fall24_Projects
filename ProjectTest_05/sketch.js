@@ -102,7 +102,8 @@ function draw() {
       let transitionWidth = 200;
       
       if (d < currentRadius) {
-        let t = constrain(map(d, currentRadius - transitionWidth, currentRadius, 1, 0), 0, 1);
+        let t = (currentRadius - d) / transitionWidth;
+        t = max(0, min(1, t));
         currentColors[i][j] = lerp(currentColors[i][j], targetHue, 0.05 * t);  // Fix: Use grid coordinates
       }
       
