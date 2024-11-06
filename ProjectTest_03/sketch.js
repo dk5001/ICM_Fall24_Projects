@@ -1,12 +1,23 @@
+// Galaxy pixels 
+// make streaks of pixels that move across the screen
+// make pixels horizontally longer and vertically shorter
+// reduce the saturation of the pixels
+
 let pixels = [];
 const MIN_PIXEL_SIZE = 3;
 const MAX_PIXEL_SIZE = 10;
 const NUM_PIXELS = 400;
+let bgImage;
+
+function preload() {
+  let imageName = 'Elon.png'; // Replace with your image file name
+  bgImage = loadImage(imageName);
+}
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
   windowResized = function() {
-    resizeCanvas(windowWidth, windowHeight);
+    resizeCanvas(windowWidth, windowHeight);  
   };
   
   // Initialize random pixels
@@ -29,26 +40,21 @@ function setup() {
 function draw() {
   background(10);
   
+  // Draw the background image
+  image(bgImage, 0, 0, width, height);
+  
   // Draw and move pixels
-  for (let pixel of pixels) {
-    // Move pixel left
-    pixel.x -= pixel.speed;
-    
-    // Reset pixel when it goes off-screen
-    if (pixel.x < -pixel.size) {
-      pixel.x = width + random(100);
-      pixel.y = random(height);
-      // Optional: Regenerate color
-      pixel.color = color(
-        random(255), 
-        random(255), 
-        random(255)
-      );
-    }
-    
-    // Draw pixel
+  for (let i = 0; i < pixels.length; i++) {
+    let p = pixels[i];
+    fill(p.color);
     noStroke();
-    fill(pixel.color);
-    rect(pixel.x, pixel.y, pixel.size, pixel.size);
+    ellipse(p.x, p.y, p.size);
+    p.x -= p.speed;
+    
+    // Reset pixel position if it moves off-screen
+    if (p.x < -p.size) {
+      p.x = width + p.size;
+      p.y = random(height);
+    }
   }
 }
