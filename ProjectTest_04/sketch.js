@@ -1,12 +1,12 @@
-let n = 75;
-let azimuthOffset = 0;
+// abstract perlin noise earth image rotating according to mouse position
 
+let n = 75;
+let DirLightOffset = 0;
 
 let diameter, r, centreX, centreY, centre, radius;
 
-
 function setup() {
-  createCanvas(800, 800);
+  createCanvas(400, 400);
   colorMode(HSB, 1);
   noStroke();
   //frameRate(10);
@@ -20,12 +20,12 @@ function setup() {
 
 function draw() {
 
-  azimuthOffset += map(mouseX, 0, width, -1, 1) * 0.05;
-  background(0);
+  DirLightOffset += map(mouseX, 0, width, -1, 1) * 0.05;
+  background(0, 0, map(mouseY, height, 0, 1, 0));
   
   for(let i = 0; i < n; i++){
     let x = i * diameter + r - centreX;
-    let azimuth = map(i, 0, n-1, 0, PI) + azimuthOffset; 
+    let DirLight = map(i, 0, n-1, 0, PI) + DirLightOffset; 
     for(let j = 0; j < n; j++){
       let y = j * diameter + r - centreY;
       let inclination = map(j, 0, n-1, 0, PI);
@@ -34,8 +34,8 @@ function draw() {
       }
       
       // polar coordinates of a sphere
-      let nx = radius * sin(inclination) * cos(azimuth);
-      let ny = radius * sin(inclination) * sin(azimuth);
+      let nx = radius * sin(inclination) * cos(DirLight);
+      let ny = radius * sin(inclination) * sin(DirLight);
       let nz = radius * cos(inclination);
       
       let ns1 = noise(nx + 10, ny + 10, nz + 10);
