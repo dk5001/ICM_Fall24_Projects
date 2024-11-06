@@ -14,7 +14,7 @@ function setup() {
         maxHeight: HEIGHT
       },
       optional: [{
-        maxFrameRate: 30
+        maxFrameRate: 120
       }]
     }
   };
@@ -22,7 +22,7 @@ function setup() {
   capture.size(WIDTH, HEIGHT);
   capture.hide();
   background(0)
-  frameRate(30)
+  frameRate(120)
 }
 
 function draw() {
@@ -31,10 +31,12 @@ function draw() {
   const g = createGraphics(WIDTH, HEIGHT)
   g.image(capture, 0, 0, WIDTH, HEIGHT)
   images.unshift(g)
-  if (images.length > HEIGHT) images.pop()
-  for (let i = 0; i < HEIGHT; i++) {
+  if (images.length > WIDTH) images.pop()
+  for (let i = 0; i < WIDTH; i++) {
     if (images[i]) {
-      image(images[i].get(0, i, WIDTH, 1), 0, i, WIDTH, 1)
+      let pixelSize = map(i, 0, WIDTH, 1, 4); // Map pixel size from 1 to 4
+      let speed = map(i, 0, WIDTH, 4, 1); // Map speed inversely from 4 to 1
+      image(images[i].get(i, 0, 1, HEIGHT), i * speed, 0, pixelSize, HEIGHT)
     }
   }
 }
