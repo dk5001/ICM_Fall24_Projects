@@ -1,7 +1,8 @@
 let time = 0;
-const WAVE_PERIOD = 2000;
+const WAVE_PERIOD = 10000;
 let currentColors = [];
-let targetHue = 0;
+let targetHue;
+let center = {x: 0, y: 0};
 let pixelSize = 10;
 let pixelSlider;
 
@@ -15,29 +16,42 @@ function setup() {
   pixelSlider.position(20, 20);
   pixelSlider.style('width', '200px');
   
-  // Initialize targetHue with a random value immediately
-  targetHue = random(360);
+  center.x = width/2;
+  center.y = height/2;
   
+  targetHue = random(360);
   initializeColors();
   
-  // Force first frame to render immediately
+  // Force first frame
   time = millis();
   draw();
 }
 
 function initializeColors() {
+  let oldColors = currentColors;
   currentColors = [];
+  
   for (let x = 0; x < width; x += pixelSize) {
     currentColors[x] = [];
     for (let y = 0; y < height; y += pixelSize) {
-      currentColors[x][y] = 240;
+      if (oldColors.length > 0) {
+        // Preserve colors when changing pixel size
+        let oldX = Math.round(x / oldColors.length * width);
+        let oldY = Math.round(y / (oldColors[0]?.length || 1) * height);
+        oldX = constrain(oldX - (oldX % pixelSize), 0, width - pixelSize);
+        oldY = constrain(oldY - (oldY % pixelSize), 0, height - pixelSize);
+        currentColors[x][y] = oldColors[oldX]?.[oldY] ?? targetHue;
+      } else {
+        currentColors[x][y] = 240;
+      }
     }
   }
 }
 
 function draw() {
-  if (frameCount % 2 !== 0) return;
+  if (frameCount % 2 !== 0) return; // Skip frames for performance
   
+  // Check for pixel size changes
   let newPixelSize = pixelSlider.value();
   if (newPixelSize !== pixelSize) {
     pixelSize = newPixelSize;
@@ -46,27 +60,31 @@ function draw() {
   
   time = millis();
   let progress = (time % WAVE_PERIOD) / WAVE_PERIOD;
-  let transitionX = progress * (width * 1.5);
-  
-  // Only change color when cycle completes and we're past the first frame
-  if (progress < 0.01 && frameCount > 1) {
-    targetHue = random(360);
-  }
+  let maxRadius = dist(0, 0, width, height);
+  let currentRadius = progress * maxRadius;
   
   noStroke();
   
   for (let x = 0; x < width; x += pixelSize) {
     for (let y = 0; y < height; y += pixelSize) {
-      let baseBrightness = map(y, 0, height, 100, 50);
+      let d = dist(x + pixelSize/2, y + pixelSize/2, center.x, center.y);
+      let transitionWidth = 200;
       
-      let t = constrain(map(x, transitionX - width, transitionX, 0, 1), 0, 1);
-      t = t * t * (3 - 2 * t);
+      if (d < currentRadius) {
+        // Smooth transition based on distance
+        let t = constrain(map(d, currentRadius - transitionWidth, currentRadius, 1, 0), 0, 1);
+        currentColors[x][y] = lerp(currentColors[x][y], targetHue, 0.05 * t);
+      }
       
-      currentColors[x][y] = lerp(currentColors[x][y], targetHue, 0.1 * (1 - t));
-      
-      fill(currentColors[x][y], 85, baseBrightness);
+      let baseBrightness = map(d, 0, maxRadius, 100, 70);
+      fill(currentColors[x][y], 80, baseBrightness);
       rect(x, y, pixelSize, pixelSize);
     }
+  }
+  
+  // Reset with new color when cycle completes
+  if (progress < 0.01 && frameCount > 1) {
+    targetHue = random(360);
   }
 }
 
