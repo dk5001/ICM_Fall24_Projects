@@ -1,76 +1,63 @@
-// ########################################################## //
-// #                                                        # //
-// #            Test for post processing shaders            # //
-// #                                                        # //
-// ########################################################## //
-// #                                                        # //
-// #                Written by Fabian Kober                 # //
-// #                  fabian-kober@gmx.net                  # //
-// #                                                        # //
-// ########################################################## //
-
-// speed of the wobble
-let speed = 1;
-
-// tiling of the wobble
-let tiling = 5;
-
-// stength of the wobble
-let strength = 2;
-
-// the shader
-let sh;
-
-// an image
-let img;
-
-let vert = 'attribute vec4 aPosition;'+
-'varying vec4 v_uv;'+
-'void main() {'+
-'v_uv = aPosition;'+
-'v_uv.y *= -1.0;'+
-'v_uv.x = v_uv.x * 0.5 + 0.5;'+
-'v_uv.y = v_uv.y * 0.5 + 0.5;'+ 
-    'gl_Position = aPosition;'+
-'}';
-
-let frag = 'precision mediump float;'+
-
-'uniform sampler2D uSampler;'+
-'uniform float u_time;'+
-
-'uniform float u_speed;'+
-'uniform float u_tiling;'+
-'uniform float u_strength;'+
-
-'varying vec4 v_uv;'+
-
-'void main() {'+
-'vec2 texcoord = vec2(v_uv.x-sin(u_time*u_speed)*0.05*cos(v_uv.y*u_tiling)*u_strength, v_uv.y-cos(u_time*u_speed)*0.05*sin(v_uv.x*u_tiling)*u_strength);'+
-'vec4 col = texture2D(uSampler, texcoord);'+
-'gl_FragColor = col;'+
-'}'
-
-function preload() {
-    // load the image
-    img = loadImage('https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=750&w=1260');
-}
+let img
+let hatch
+let crisp
+let capture
 
 function setup() {
-    createCanvas(windowWidth, windowHeight, WEBGL);
-    sh = createShader(vert, frag);
-		background(0);
+	createCanvas(windowWidth, windowHeight, WEBGL)
+	crisp = createFramebuffer()
+	hatch = createFilterShader(`#version 300 es
+		precision highp float;
+		
+		in vec2 vTexCoord;
+		out vec4 outColor;
+		uniform sampler2D tex0;
+		uniform sampler2D crisp;
+		uniform vec2 canvasSize;
+		uniform float time;
+		
+		vec3 position(vec2 uv) {
+			vec4 color = texture(tex0, uv);
+			float h = (color.r + color.b + color.g) / 3.;
+			return vec3(canvasSize * uv, h * (canvasSize.x + canvasSize.y) * 0.035);
+		}
+		
+		void main() {
+			vec4 orig = texture(crisp, vTexCoord);
+			float brightness = (orig.x + orig.y + orig.z) / 3.;
+			
+			vec3 c = position(vTexCoord);
+
+			outColor = mix(
+				vec4(0., 0., 0., 1.),
+				vec4(1., 1., 1., 1.),
+				smoothstep(
+					0.5,
+					0.51,
+					brightness + smoothstep(0., 0.5, sin(c.z * 4. + time*0.001)) * 0.3
+				)
+			);  
+		}
+	`)
+	
+	capture = createCapture(VIDEO);
+  capture.hide();
 }
 
 function draw() {
-    // set uniforms
-    sh.setUniform("uSampler", img);
-    sh.setUniform("u_time", millis()/1000);
-    sh.setUniform("u_speed", speed);
-    sh.setUniform("u_tiling", tiling+mouseY*0.01);
-    sh.setUniform("u_strength", strength+mouseX*0.01);
-    
-    // render on a quad
-    shader(sh);
-    quad(-1, -1, 1, -1, 1, 1, -1, 1);
+	crisp.draw(() => {
+		clear()
+		imageMode(CENTER)
+		
+		// Swap commented lines for horse
+		// image(img, 0, 0, width, height, 0, 0, img.width, img.height, COVER, RIGHT, CENTER)
+		image(capture, 0, 0, width, height, 0, 0, capture.width, capture.height, COVER)
+	})
+	clear()
+	imageMode(CENTER)
+	image(crisp, 0, 0)
+	filter(BLUR, 100)
+	hatch.setUniform('crisp', crisp)
+	hatch.setUniform('time', millis())
+	filter(hatch)
 }
